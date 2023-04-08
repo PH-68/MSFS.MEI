@@ -23,7 +23,10 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore -c Release --self-contained
-    - name: Publish
-      run: dotnet publish -o ./output --runtime win10-x64 --self-contained --source ./MSFS.MEI
-
+      run: dotnet build --no-restore -c Release --self-contained --runtime win10-x64 --self-contained --property PublishDir=${{env.DOTNET_ROOT}}/myapp
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3.1.2
+      with:
+    # Artifact name
+    # A file, directory or wildcard pattern that describes what to upload
+          path: ${{env.DOTNET_ROOT}}/myapp
