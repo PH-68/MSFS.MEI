@@ -23,7 +23,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build -c Release --self-contained --runtime win-x64 --self-contained --property PublishDir=${{env.DOTNET_ROOT}}/myapp
+      run: dotnet build -c Release --self-contained --runtime win-x64 --self-contained
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3.1.2
       with:
