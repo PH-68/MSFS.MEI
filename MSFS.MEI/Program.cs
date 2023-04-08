@@ -5,20 +5,11 @@ namespace MSFS.MEI
 {
     public class Program
     {
+
+        public static Timer timer = new(TimerCallback);
+
         public static void Main(string[] args)
         {
-            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-            //GCSettings.LatencyMode = GCLatencyMode.NoGCRegion;
-            TimerCallback timeCB = new((object? _) =>
-            {
-                GC.Collect();
-                Console.Clear();
-                Console.Write(string.Format("Image count:{0}, Data(MB):{1}", Controllers.TilesController.Count, Controllers.TilesController.Size / 1000000));
-            });
-
-            Timer _ = new(timeCB, null, 0, 1000);
-
-
             var builder = WebApplication.CreateBuilder(args);
 
             builder.WebHost.ConfigureKestrel((context, options) =>
@@ -26,7 +17,7 @@ namespace MSFS.MEI
                 options.ListenAnyIP(443, listenOptions =>
                 {
                     listenOptions.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
-                    listenOptions.UseHttps();
+                    listenOptions.UseHttps("./msfs2020-server-cert.pfx", "password");
                 });
             });
 
@@ -45,7 +36,21 @@ namespace MSFS.MEI
 
             app.MapControllers();
 
+
+            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+            //GCSettings.LatencyMode = GCLatencyMode.NoGCRegion;
+
+            //TimerCallback(timer);
+            timer.Change(0, 1000);
+
             app.Run();
+        }
+        public static void TimerCallback(object? state)
+        {
+            GC.Collect();
+            //((Timer)state).Change(0, 1000);
+            Console.Clear();
+            Console.Write(string.Format("[{0}]Image count:{1}, Data(MB):{2}", DateTime.Now.ToString(), Controllers.TilesController.Count, Controllers.TilesController.Size / 1000000));
         }
     }
 }
