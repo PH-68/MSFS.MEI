@@ -23,6 +23,8 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
+      run: mkdir ${{env.DOTNET_ROOT}}/myapp
+    - name: Build
       run: dotnet build -c Release --self-contained -o ${{env.DOTNET_ROOT}}/myapp
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3.1.2
