@@ -40,7 +40,6 @@ namespace MSFS.MEI
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
             //GCSettings.LatencyMode = GCLatencyMode.NoGCRegion;
 
-            //TimerCallback(timer);
             timer.Change(0, 1000);
 
             app.Run();
@@ -48,9 +47,8 @@ namespace MSFS.MEI
         public static void TimerCallback(object? state)
         {
             GC.Collect();
-            //((Timer)state).Change(0, 1000);
             Console.Clear();
-            Console.Write(string.Format("[{0}]Image count:{1}, Data(MB):{2}", DateTime.Now.ToString(), Controllers.TilesController.Count, Controllers.TilesController.Size / 1000000));
+            Console.Write(string.Format("[{0}]Image count:{1}, Data(MB):{2}", DateTime.Now.ToString(), Controllers.TilesController.Count, Controllers.TilesController.Size / 1000000.0));
         }
     }
 }
