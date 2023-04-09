@@ -12,7 +12,7 @@ on:
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -23,12 +23,10 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: mkdir ${{env.DOTNET_ROOT}}/myapp
+      run: dotnet build -c Release
     - name: Build
-      run: dotnet build -c Release --self-contained -o ${{env.DOTNET_ROOT}}/myapp
+      run: dotnet publish -c release --property:PublishDir=${{env.DOTNET_ROOT}}/myapp
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3.1.2
       with:
-    # Artifact name
-    # A file, directory or wildcard pattern that describes what to upload
           path: ${{env.DOTNET_ROOT}}/myapp
