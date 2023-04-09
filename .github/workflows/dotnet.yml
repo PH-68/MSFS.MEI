@@ -24,9 +24,19 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build -c Release
-    - name: Build
-      run: dotnet publish -c release --property:PublishDir=${{env.DOTNET_ROOT}}/myapp
+    - name: Publish Self Contained
+      run: dotnet publish -c release --self-contained --property:PublishDir=${{env.DOTNET_ROOT}}/MSFS.MEI-Self-Contained -p:PublishTrimmed=true
+    - name: Publish Without Self Contained
+      run: dotnet publish -c release --no-self-contained --property:PublishDir=${{env.DOTNET_ROOT}}/MSFS.MEI-No-Self-Contained
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v3.1.2
       with:
-          path: ${{env.DOTNET_ROOT}}/myapp
+        name: MSFS.MEI-Self-Contained
+        path: ${{env.DOTNET_ROOT}}/MSFS.MEI-Self-Contained
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        name: MSFS.MEI-No-Self-Contained
+        path: |
+          ${{env.DOTNET_ROOT}}/MSFS.MEI-No-Self-Contained
+          !${{env.DOTNET_ROOT}}/MSFS.MEI-No-Self-Contained/MSFS.MEI-Self-Contained
