@@ -48,7 +48,7 @@ namespace MSFS.MEI
         {
             GC.Collect();
             Console.Clear();
-            Console.Write(string.Format("[{0}]Image count:{1}, Data(MB):{2}", DateTime.Now.ToString(), Controllers.TilesController.Count, Controllers.TilesController.Size / 1000000.0));
+            Console.Write(string.Format("[{0}]Image count:{1}, Data usage(MB):{2}", DateTime.Now.ToString(), Controllers.TilesController.Count, Controllers.TilesController.Size / 1000000.0));
         }
     }
 }
