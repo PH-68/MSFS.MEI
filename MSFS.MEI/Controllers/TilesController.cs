@@ -1,43 +1,80 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using System.Drawing;
 using System.Net;
-using System.Runtime;
-using System.Text.Json;
+using System.Security.Authentication;
 
 namespace MSFS.MEI.Controllers
 {
     [ApiController]
     public class TilesController : Controller
     {
-        static readonly HttpClient client = new(new HttpClientHandler
+        public TilesController(IOptions<MEIConfig> mEIConfig)
         {
-            AutomaticDecompression = DecompressionMethods.GZip,
-            MaxConnectionsPerServer = 10,
-            SslProtocols = System.Security.Authentication.SslProtocols.Tls13
+            _MEIConfig = mEIConfig.Value;
+        }
+
+        private readonly MEIConfig _MEIConfig;
+
+        private static readonly HttpClient client = new(new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.Brotli,
+            MaxConnectionsPerServer = 32,
+            SslProtocols = SslProtocols.Tls13
         })
         {
             DefaultRequestVersion = HttpVersion.Version30,
-            DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact
+            DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower
         };
 
         private byte[]? responseBody;
 
-        public static ulong Count, Size = 0;
+        public static ulong Count = 0, Size = 0;
 
-        [Route("tiles/akh{path}.jpeg")]
-        public async Task<IActionResult> TilesAsync(string path)
+        [Route("tiles/akh{quadKey}.jpeg", Order = 1)]
+        public async Task<IActionResult> TilesAsync(string quadKey)
         {
-            var (tileX, tileY, levelOfDetail) = QuadKeyToTileXY(path);
-            using HttpResponseMessage response = await client.GetAsync(string.Format("https://khms.google.com/kh/v=939?x={0}&y={1}&z={2}", tileX, tileY, levelOfDetail));
-            response.EnsureSuccessStatusCode();
-            responseBody = await response.Content.ReadAsByteArrayAsync();
-            response.Dispose();
+            //TODO: User Agent implement
+            if (_MEIConfig.HighLODEnabled)
+            {
+                responseBody = MergeImages(await GetImagesFromQuadKey(quadKey));
+            }
+            else
+            {
+                (int tileX, int tileY, int levelOfDetail) = QuadKeyToTileXY(quadKey);
+                responseBody = await client.GetByteArrayAsync(string.Format(_MEIConfig.ImageServerURL, tileX, tileY, levelOfDetail));
+            }
             Count++;
             Size += (ulong)responseBody.LongLength;
-            return File(responseBody, "image/jpeg");
+            if (responseBody != null)
+            {
+                return File(responseBody, "image/jpeg");
+            }
+            return NotFound();
         }
 
+        private async Task<List<Image>> GetImagesFromQuadKey(string quadKey)
+        {
+            List<Image> images = new();
+            foreach ((int tileX, int tileY, int levelOfDetail) in GetHighLODCoordinateFromQuadKey(quadKey))
+            {
+                images.Add((Bitmap)new ImageConverter().ConvertFrom(await client.GetByteArrayAsync(string.Format(_MEIConfig.ImageServerURL, tileX, tileY, levelOfDetail)))!);
+            }
+            return images;
+        }
 
-        public static (int tileX, int tileY, int levelOfDetail) QuadKeyToTileXY(string quadKey)
+        private static byte[] MergeImages(List<Image> images)
+        {
+            Bitmap bitmap = new(512, 512, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            using Graphics graphics = Graphics.FromImage(bitmap);
+            graphics.DrawImage(images[0], 0, 0);
+            graphics.DrawImage(images[1], 256, 0);
+            graphics.DrawImage(images[2], 0, 256);
+            graphics.DrawImage(images[3], 256, 256);
+            return (byte[])new ImageConverter().ConvertTo(bitmap, typeof(byte[]))!;
+        }
+
+        private static (int tileX, int tileY, int levelOfDetail) QuadKeyToTileXY(string quadKey)
         {
             int tileX = 0;
             int tileY = 0;
@@ -66,7 +103,7 @@ namespace MSFS.MEI.Controllers
             return (tileX, tileY, levelOfDetail);
         }
 
-        public static (int tileX, int tileY, int levelOfDetail)[] GetNextLevel(string quadKey)
+        private static (int tileX, int tileY, int levelOfDetail)[] GetHighLODCoordinateFromQuadKey(string quadKey)
         {
             var (x, y, z) = QuadKeyToTileXY(quadKey);
             return new (int tileX, int tileY, int levelOfDetail)[4]

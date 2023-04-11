@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using System.Diagnostics;
+using System.IO.Compression;
 using System.Runtime;
 
 namespace MSFS.MEI
@@ -25,7 +28,15 @@ namespace MSFS.MEI
 
             builder.Services.AddControllers();
 
+            builder.Services.AddOptions();
+
+            builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
+            builder.Services.Configure<MEIConfig>(builder.Configuration.GetSection("MEIConfig"));
+
             var app = builder.Build();
+
+            app.MapReverseProxy();
 
             // Configure the HTTP request pipeline.
 
@@ -33,12 +44,36 @@ namespace MSFS.MEI
 
             app.UseAuthorization();
 
-
             app.MapControllers();
 
-
             GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-            //GCSettings.LatencyMode = GCLatencyMode.NoGCRegion;
+
+            app.Use(async (context, next) =>
+            {
+                string[] blackList = { "tsom_cc_activation_masks", "texture_synthesis_online_map_high_res", "color_corrected_images" };
+
+                if (context.Request.Path.HasValue && (blackList.Any(context.Request.Path.Value!.Contains) || (context.Request.Path.Value.Contains("/coverage_maps/") && !context.Request.Path.Value.Contains("tin_extensions"))))
+                {
+                    context.Response.StatusCode = 404;
+                }
+                else
+                {
+                    await next.Invoke();
+                }
+
+
+            });
+
+#if !RELEASE
+            app.Use(async (context, next) =>
+            {
+                if (!context.Request.Path.Value!.Contains("akh", StringComparison.CurrentCulture))
+                {
+                    Trace.WriteLine(context.Request.Host + context.Request.Path);
+                }
+                await next.Invoke();
+            });
+#endif
 
             timer.Change(0, 1000);
 
@@ -48,7 +83,7 @@ namespace MSFS.MEI
         {
             GC.Collect();
             Console.Clear();
-            Console.Write(string.Format("[{0}]Image count:{1}, Data usage(MB):{2}", DateTime.Now.ToString(), Controllers.TilesController.Count, Controllers.TilesController.Size / 1000000.0));
+            Console.Write($"[{DateTime.Now}]Image count:{Controllers.TilesController.Count}, Data usage(MB):{Controllers.TilesController.Size / 1000000.0}");
         }
     }
 }
