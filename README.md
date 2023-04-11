@@ -1,7 +1,7 @@
 # MSFS.MEI(MSFS Map Enhancement Improved)
 A lightweight application to replace original MSFS Bing maps with Google maps.
 
-This is still in very early development. Some feature might be missing. Such as cache, other map providers, High LOD...(Will implement in near future!)
+This is still in very early development. Some feature might be missing. Such as cache, other map providers...(Will implement in near future!)
 
 ## Feature
 
@@ -36,3 +36,5 @@ Run MSFS.MEI.exe
 
 ⚠️Make sure you got latest .NET 7 runtime installed if you're using no-self-contained version
 
+## Settings
+Refer to [wiki](https://github.com/PH-68/MSFS.MEI/wiki) for more
